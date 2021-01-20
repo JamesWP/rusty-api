@@ -33,4 +33,6 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: api-backend-build
-        path: target/debug/peach-data
+        path: |
+          frontend/dist/main.js
+          frontend/index.html
