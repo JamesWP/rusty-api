@@ -1,4 +1,4 @@
-const API_BASE = "https://localhost:8080";
+const API_BASE = `https://${window.location.host}`;
 
 export function has_session() {
     let has_session_url = API_BASE + "/has_session";
