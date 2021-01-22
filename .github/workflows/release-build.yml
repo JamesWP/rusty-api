@@ -10,7 +10,7 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build-rust:
+  build-backend:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -29,13 +29,12 @@ jobs:
         run: cargo build --verbose --release
       - name: Run tests
         run: cargo test --verbose --release
-        working-directory: frontend
       - name: Archive production artifacts
         uses: actions/upload-artifact@v2
         with:
           name: api-backend-build
           path: target/release/peach-data
-  build-backend:
+  build-frontend:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -45,8 +44,10 @@ jobs:
           node-version: 12.x
       - name: CI
         run: npm ci
+        working-directory: frontend
       - name: Build
         run: npm run build --if-present
+        working-directory: frontend
       - name: Archive production artifacts
         uses: actions/upload-artifact@v2
         with:
@@ -55,7 +56,7 @@ jobs:
             frontend/dist/main.js
             frontend/index.html
   publish-release:
-    needs: [ build-backend, build-rust ]
+    needs: [ build-backend, build-frontend ]
     if: ${{ github.event_name == 'push' }}
     runs-on: ubuntu-latest
     steps:
