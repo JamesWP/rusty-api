@@ -70,6 +70,8 @@ jobs:
           name: backend-build
       - name: Zip artifacts
         run: zip -r artifact.zip dist/main.js index.html peach-data
+      - name: Checkout
+        uses: actions/checkout@v2
       - name: Declare some variables
         id: vars
         run: echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
