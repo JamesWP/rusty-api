@@ -1,20 +1,17 @@
-name: Api-Backend-Build
+name: Release-build
 
 on:
   push:
-    branches: [ master ]
-  pull_request:
     branches: [ master ]
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
+  build-rust:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-
     - uses: actions/cache@v2
       with:
         path: |
@@ -22,20 +19,36 @@ jobs:
           ~/.cargo/git
           target
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-      
     - uses: actions-rs/toolchain@v1
       with:
         profile: minimal
         toolchain: stable
-  
     - name: Build
       run: cargo build --verbose --release
-    
     - name: Run tests
       run: cargo test --verbose --release
-    
+      working-directory: frontend
     - name: Archive production artifacts
       uses: actions/upload-artifact@v2
       with:
         name: api-backend-build
         path: target/release/peach-data
+  build-backend:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Use Node.js 12.x
+      uses: actions/setup-node@v1
+      with:
+        node-version: 12.x
+    - name: CI
+      run: npm ci
+    - name: Build
+      run: npm run build --if-present
+    - name: Archive production artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: frontend-build
+        path: |
+          frontend/dist/main.js
+          frontend/index.html
