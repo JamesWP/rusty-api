@@ -55,10 +55,11 @@ jobs:
           path: |
             frontend/dist/main.js
             frontend/index.html
-  list-files:
+  publish-release:
     needs: [ build-backend, build-frontend ]
+    if: ${{ github.event_name == 'push' }}
     runs-on: ubuntu-latest
-    steps:
+    steps:      
       - name: Download frontend artifact
         uses: actions/download-artifact@v2
         with:
@@ -67,15 +68,8 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: backend-build
-      - name: LS
-        run: ls -la .
-  publish-release:
-    needs: [ build-backend, build-frontend ]
-    if: ${{ github.event_name == 'push' }}
-    runs-on: ubuntu-latest
-    steps:
       - name: Zip artifacts
-        run: zip -r artifact.zip frontend/dist/main.js frontend/index.html target/release/peach-data
+        run: zip -r artifact.zip dist/main.js index.html peach-data
       - name: Declare some variables
         id: vars
         run: echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
