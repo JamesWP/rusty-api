@@ -3,6 +3,8 @@ name: Release-build
 on:
   push:
     branches: [ master ]
+  pull_request:
+    branches: [ master ]
 
 env:
   CARGO_TERM_COLOR: always
@@ -11,44 +13,74 @@ jobs:
   build-rust:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions/cache@v2
-      with:
-        path: |
-          ~/.cargo/registry
-          ~/.cargo/git
-          target
-        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-    - uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
-    - name: Build
-      run: cargo build --verbose --release
-    - name: Run tests
-      run: cargo test --verbose --release
-      working-directory: frontend
-    - name: Archive production artifacts
-      uses: actions/upload-artifact@v2
-      with:
-        name: api-backend-build
-        path: target/release/peach-data
+      - uses: actions/checkout@v2
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+      - name: Build
+        run: cargo build --verbose --release
+      - name: Run tests
+        run: cargo test --verbose --release
+        working-directory: frontend
+      - name: Archive production artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: api-backend-build
+          path: target/release/peach-data
   build-backend:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - name: Use Node.js 12.x
-      uses: actions/setup-node@v1
+      - uses: actions/checkout@v2
+      - name: Use Node.js 12.x
+        uses: actions/setup-node@v1
+        with:
+          node-version: 12.x
+      - name: CI
+        run: npm ci
+      - name: Build
+        run: npm run build --if-present
+      - name: Archive production artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: frontend-build
+          path: |
+            frontend/dist/main.js
+            frontend/index.html
+  publish-release:
+    needs: [ build-backend, build-rust ]
+    if: ${{ github.event_name == 'push' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Zip artifacts
+        run: zip -r artifact.zip frontend/dist/main.js frontend/index.html target/release/peach-data
+      - name: Declare some variables
+        id: vars
+        run: echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        node-version: 12.x
-    - name: CI
-      run: npm ci
-    - name: Build
-      run: npm run build --if-present
-    - name: Archive production artifacts
-      uses: actions/upload-artifact@v2
+        tag_name: ${{ steps.vars.outputs.sha_short }}
+        release_name: Release ${{ steps.vars.outputs.sha_short }}
+        draft: false
+        prerelease: false
+    - name: Upload Release Asset
+      id: upload-release-asset 
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        name: frontend-build
-        path: |
-          frontend/dist/main.js
-          frontend/index.html
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./artifact.zip
+        asset_name: artifact.zip
+        asset_content_type: application/zip
