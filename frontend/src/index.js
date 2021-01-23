@@ -2,6 +2,7 @@ import * as Util from './util';
 import * as PeachData from './peach-data';
 
 const OAUTH_CLIENT_ID = "6289e8b7f6d38b068d87";
+const WEB_BASE = `https://${window.location.host}`;
 
 function redirect_to_provider() {
   // we dont have code and state, lets get them
@@ -15,7 +16,7 @@ function redirect_to_provider() {
   let params = new URLSearchParams();
 
   params.set("client_id", OAUTH_CLIENT_ID);
-  params.set("redirect_uri", "https://localhost:8080/");
+  params.set("redirect_uri", WEB_BASE);
   params.set("scope", "user:email");
   params.set("state", state);
 
